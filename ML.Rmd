@@ -1,0 +1,484 @@
+---
+title: "Machine Learning"
+output: html_document
+date: '2022-12-03'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+#install.packages("caTools")
+#install.packages("FSelector")
+library(FSelector)
+library(tidyverse)
+#install.packages("mltools")
+#install.packages("tree")
+library(mltools)
+library(data.table)
+library(caTools)
+library(ROSE)
+library(tree)
+library(maptree)
+#install.packages("partykit")
+library(partykit)
+#install.packages(e1071)
+library(e1071)
+install.packages("caret")
+library(caret) 
+# Packages for SVM, Random Forest and GBM
+library(randomForest)
+#install.packages("gbm")
+library(gbm)
+#load the ROCR package
+#install.packages("pROC")
+library(pROC) 
+citation("pROC")
+```
+# drop duplicate data
+```{r}
+mydata <- read_csv("assignment_data.csv")
+head(mydata,5)
+mydata_distinct <- distinct(mydata)
+nrow(mydata)-nrow(mydata_distinct)
+```
+
+
+# change data type
+
+```{r}
+LIMIT_GROUP <- cut(mydata$LIMIT,breaks = c(0,2000,5000,10000,50000,200000,1000000),labels = c("0","1","2","3","4","5"))
+BILL1_GROUP <- cut(mydata$BILL1,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+BILL2_GROUP <- cut(mydata$BILL2,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+BILL3_GROUP <- cut(mydata$BILL3,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+BILL4_GROUP <- cut(mydata$BILL4,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+BILL5_GROUP <- cut(mydata$BILL5,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+BILL6_GROUP <- cut(mydata$BILL6,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+PYAMT1_GROUP <- cut(mydata$PYAMT1,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+PYAMT2_GROUP <- cut(mydata$PYAMT2,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+PYAMT3_GROUP <- cut(mydata$PYAMT3,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+PYAMT4_GROUP <- cut(mydata$PYAMT4,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+PYAMT5_GROUP <- cut(mydata$PYAMT5,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+PYAMT6_GROUP <- cut(mydata$PYAMT6,breaks = c(-300000,0,2000,5000,10000,50000,2000000),labels = c("0","1","2","3","4","5"))
+mydata <- cbind(mydata,LIMIT_GROUP,BILL1_GROUP,BILL2_GROUP,BILL3_GROUP,BILL4_GROUP,BILL5_GROUP,BILL6_GROUP,PYAMT1_GROUP,PYAMT2_GROUP,PYAMT3_GROUP,PYAMT4_GROUP,PYAMT5_GROUP,PYAMT6_GROUP)
+columns_1 <- c("ID","GENDER","EDUCATION","MARRIAGE","AGE_CTG","PY1","PY2","PY3","PY4","PY5","PY6","SATISFACTION","FREQTRANSACTION","PHONE","DEPENDENT","RSTATUS","OTH_ACCOUNT","CAR","YEARSINADD","SECONDHOME","EMPLOYMENT","NEW_CSTM","CM_HIST","CLASS","CREDITCRD") 
+columns_2 <- c("BILL1","BILL2","BILL3","BILL4","BILL5","BILL6","PYAMT1","PYAMT2","PYAMT3","PYAMT4","PYAMT5","PYAMT6","LIMIT","AGE")
+columns_3 <- c("LIMIT_GROUP","BILL1_GROUP","BILL2_GROUP","BILL3_GROUP","BILL4_GROUP","BILL5_GROUP","BILL6_GROUP","PYAMT1_GROUP","PYAMT2_GROUP","PYAMT3_GROUP","PYAMT4_GROUP","PYAMT5_GROUP","PYAMT6_GROUP")
+mydata[columns_1] <- lapply(mydata[columns_1],as.factor)
+mydata[columns_2] <- lapply(mydata[columns_2],as.integer)
+mydata[columns_3] <- lapply(mydata[columns_3],as.factor)
+str(mydata)
+summary(mydata)
+```
+# drop missing values
+```{r}
+mydata_new <- na.omit(mydata_distinct)
+nrow(mydata_new)-nrow(mydata_distinct)
+summary(mydata_distinct)
+summary(mydata_new)
+```
+# the aggregate of delay payment(find the relationship between CLASS and PY)
+```{r}
+mydata_new %>% filter(PY1 %in%c("1","2","3","4","5","6","7","8","9")) %>% count()
+mydata_new %>% filter(PY2 %in%c("1","2","3","4","5","6","7","8","9")) %>% count()
+mydata_new %>% filter(PY3 %in%c("1","2","3","4","5","6","7","8","9")) %>% count()
+mydata_new %>% filter(PY4 %in%c("1","2","3","4","5","6","7","8","9")) %>% count()
+mydata_new %>% filter(PY5 %in%c("1","2","3","4","5","6","7","8","9")) %>% count()
+mydata_new %>% filter(PY6 %in%c("1","2","3","4","5","6","7","8","9")) %>% count()
+
+```
+# find the relationship between BILL and PYAMT
+```{r}
+mydata_new %>% mutate(relationbwbillandpat1=BILL1-PYAMT1) %>% filter(relationbwbillandpat1>0) %>% count()
+mydata_new %>% mutate(relationbwbillandpat2=BILL2-PYAMT2) %>% filter(relationbwbillandpat2>0) %>% count()
+mydata_new %>% mutate(relationbwbillandpat3=BILL3-PYAMT3) %>% filter(relationbwbillandpat3>0) %>% count()
+mydata_new %>% mutate(relationbwbillandpat1=BILL1-PYAMT1) %>% filter(relationbwbillandpat1<=0) %>% count()
+mydata_new %>% mutate(relationbwbillandpat2=BILL2-PYAMT2) %>% filter(relationbwbillandpat2<=0) %>% count()
+mydata_new %>% mutate(relationbwbillandpat3=BILL3-PYAMT3) %>% filter(relationbwbillandpat3<=0) %>% count()
+```
+
+
+```{r}
+ggplot(data = mydata_new)+geom_bar(mapping = aes(x=CLASS))
+mydata_new %>% ggplot(mapping = aes(x=LIMIT))+geom_histogram()
+mydata_new %>% ggplot(mapping = aes(x=BILL5))+geom_histogram()
+```
+# analysis the relationship between each numerical variable and CLASS
+```{r}
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=LIMIT))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=BILL1))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=BILL2))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=BILL3))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=BILL4))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=BILL5))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=BILL6))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=PYAMT1))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=PYAMT2))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=PYAMT3))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=PYAMT4))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=PYAMT5))+geom_boxplot()
+mydata_new %>% ggplot(mapping = aes(x=CLASS,y=PYAMT6))+geom_boxplot()
+```
+# analysis the relationship between each categorical variable and CLASS
+```{r}
+mydata %>% ggplot(mapping = aes(x=CLASS, y=GENDER))+geom_count()
+mydata %>% ggplot(mapping = aes(x=CLASS, y=EDUCATION))+geom_count()
+mydata %>% ggplot(mapping = aes(x=CLASS, y=MARRIAGE))+geom_count()
+mydata %>% ggplot(mapping = aes(x=CLASS, y=AGE_CTG))+geom_count()
+mydata %>% ggplot(mapping = aes(x=CLASS, y=PY1))+geom_count()
+mydata %>% ggplot(mapping = aes(x=CLASS, y=PY2))+geom_count()
+mydata %>% ggplot(mapping = aes(x=CLASS, y=PY3))+geom_count()
+mydata %>% ggplot(mapping = aes(x=CLASS, y=PY4))+geom_count()
+mydata %>% ggplot(mapping = aes(x=CLASS, y=PY5))+geom_count()
+mydata %>% ggplot(mapping = aes(x=CLASS, y=PY6))+geom_count()
+```
+
+
+# drop no value variables
+```{R}
+mydata_new[c("ID","CM_HIST")] <- NULL
+#"AGE", "CREDITCRD","PY2","PY3","PY4","PY5","PY6","PYAMT2","PYAMT3","PYAMT4","PYAMT5","PYAMT6","BILL2","BILL3","BILL4","BILL5","BILL6"
+```
+```{r}
+#z_score <- function(x){
+ # res <- (x-mean(x))/sd(x)
+  #return(res)
+#}
+#newdata<- as.data.frame(sapply(mydata_new[,c("PYAMT1","PYAMT2","PYAMT3","PYAMT#4","PYAMT5","PYAMT6","BILL1","BILL2","BILL3","BILL4","BILL5","BILL6","LIMIT")]#,z_score))
+#print(newdata)
+#replace((unlist(mydata$c("PYAMT1","PYAMT2","PYAMT3","PYAMT4","PYAMT5","PYAMT6"#,"BILL1","BILL2","BILL3","BILL4","BILL5","BILL6","LIMIT"),newdata$c("PYAMT1","#PYAMT2","PYAMT3","PYAMT4","PYAMT5","PYAMT6","BILL1","BILL2","BILL3","BILL4","B#ILL5","BILL6","LIMIT"))
+
+```
+
+```{r}
+#data<- cbind(newdata,mydata_new)
+#data[c("LIMIT","PYAMT1","BILL1")] <- NULL
+#table(data$CLASS)
+str(mydata_new)
+```
+
+# partiton data 
+```{r}
+set.seed(123)
+split = sample.split(mydata_new$CLASS, SplitRatio = 0.8)
+training = subset(mydata_new, split == TRUE)
+test = subset(mydata_new, split == FALSE)
+table(training$CLASS)
+```
+```{r}
+bothsampled <- ovun.sample(CLASS~.,data=training,method="both",p=0.4)$data
+table(bothsampled$CLASS)
+```
+```{r}
+#install.packages("FSelector")
+library(mlbench)
+attr_chi <- chi.squared(CLASS~., bothsampled)
+sorted_chi <- attr_chi[order(-attr_chi$attr_importance), , drop = F]
+filter(attr_chi,attr_importance>0)
+```
+
+```{r}
+attr_weight <- information.gain(CLASS~., bothsampled)
+print(attr_weight)
+#z_score <- function(x){
+#  res <- (x-mean(x))/sd(x)
+#  return(res)
+#}
+#new_weight<- as.data.frame(sapply(attr_weight[,"attr_importance"],z_score))
+#print(new_weight)
+```
+
+
+```{r}
+sorted_weight <- attr_weight[order(-attr_weight$attr_importance), , drop = F]
+print(sorted_weight)
+barplot(unlist(sorted_weight),names.arg = rownames(sorted_weight),las="2",cex.names=0.5,space = 0.3)
+filter(attr_weight,attr_importance>0)
+str(bothsampled)
+```
+```{r}
+#coef(mydata_new)
+```
+
+```{r}
+#rcorr(as.matrix(mydata_new))
+#mydata_new <- lapply(mydata_new,as.numeric)
+#lm_py1 <- lm(CLASS~PY1+PY2+PY3+PY4+PY5+PY6+PYAMT1+PYAMT2+PYAMT3+PYAMT4+#PYAMT5+PYAMT6,data = mydata_new)
+#summary(lm_py1)
+#lm_py2 <- lm(CLASS~PY1*PY2*PY3*PY4*PY5*PY6*PYAMT1*PYAMT2*PYAMT3*PYAMT4*PYAMT5*PYAMT6,data = mydata_new)
+#summary(lm_py2)
+#anova(lm_py1,lm_py2)
+```
+```{r}
+#lm_py2 <- lm(CLASS~PY1*PY2*PY3*PY4*PY5*PY6*PYAMT1*PYAMT2*PYAMT3*PYAMT4*PYAMT5*P#YAMT6,data = mydata_new)
+```
+
+
+
+
+```{r}
+filtered_attributes <- cutoff.k(attr_weight,23)
+print(filtered_attributes)
+datamodelling <- training[filtered_attributes]
+datamodelling$CLASS <- training$CLASS
+```
+
+#build a tree model
+```{r}
+set.seed(123)
+dctree <- ctree(CLASS~.,datamodelling,control = tree.control(nrow(datamodelling), mindev = 0.01))
+print(dctree)
+plot(dctree)
+```
+
+# Predicting the Test set results 
+```{r}
+tree_predict <- predict(dctree,test,type = "class")
+accuracy_tree <- length(which(tree_predict==test$CLASS))/nrow(test)
+accuracy_tree
+confusionMatrix(tree_predict,test$CLASS, positive = "1", mode = "prec_recall")
+```
+
+# Build an SVM model 
+```{r}
+SVM_model <- svm(CLASS~., bothsampled, kernel= "radial", scale = TRUE, probability=TRUE)
+```
+
+
+# Predicting the Test set results 
+```{r}
+svm_predict <- predict(SVM_model, test)
+```
+
+
+# Find the percentage of correct predictions
+```{r} 
+accuracy_svm <- length(which(svm_predict == test$CLASS))/nrow(test)
+accuracy_svm
+confusionMatrix(svm_predict,test$CLASS, positive = '1', mode = "prec_recall")
+
+```
+
+# Build a logistic regression model 
+logistic regression model is a classification technique which models the probability that a target variable belongs to a particular class. In order to build our logistic regression model, we will use `glm()` function.
+
+The basic syntax of this function can be given as follows:
+
+    glm(formula, data, family = ...)
+    
+- Formula shows which features are used in modelling to predict target variable.
+
+- Data is the dataset that will be used for model building.
+
+- Family shows which type of model we want to develop. `glm()` function can be used to build generalised linear models (GLM). In order to use logistic function, we should set `family = "binomial"`.
+
+```{r  message=FALSE}
+LR_model <- glm(CLASS ~. , data = bothsampled, family = "binomial")
+
+```
+
+
+* Predict the class of the test data and store the result as *LR_prob* using `predict()` function with the following syntax:
+
+        predict(logistic regression model, test data, type="response")
+
+Since logistic regression returns the scores (or likelihood of belonging to a class), we use `type="response"` syntax to obtain these values.
+
+
+```{r  message=FALSE}
+
+# Predict the class probabilities of the test data
+LR_prob <- predict(LR_model, test, type="response")
+
+```
+
+*LR_prob* will return the class scores (or probabilities). In order to predict the class of a test data, we use cutoff value 0.5. If the probability of a record is greater than or equal to 0.5, it will be marked as "1", otherwise it will be marked as "0". We need to save these predictions as factor variable.
+
+```{r  message=FALSE}
+
+# Predict the class 
+LR_class <- ifelse(LR_prob >= 0.45, "1", "0")
+
+# Save the predictions as factor variables
+LR_class <- as.factor(LR_class)
+
+# Find the percentage of correct predictions
+accuracy_LR <- length(which(LR_class == test$class))/nrow(test)
+
+accuracy_LR
+
+```
+
+
+
+
+#build a random forest model
+```{r}
+
+# Set random seed
+set.seed(123)
+
+# Build Random Forest model and assign it to RF_model
+mtry_val <- seq(3, 7, 2)
+nodesize_val <- seq(1, 10, 2)
+sampsize_val <- floor(nrow(bothsampled)*c(0.5, 0.65, 0.8))
+setOfvalues <- expand.grid(mtry = mtry_val, nodesize = nodesize_val, sampsize = sampsize_val)
+err <- c()
+# Create a data frame containing all combinations 
+
+for (i in 1:nrow(setOfvalues)){
+    # Since random forest model uses random numbers set the seed
+    set.seed(123)
+    
+    # Train a Random Forest model
+    model <- randomForest(CLASS~., bothsampled,
+                          mtry = setOfvalues$mtry[i],
+                          nodesize = setOfvalues$nodesize[i],
+                          sampsize = setOfvalues$sampsize[i])
+                          
+    # Store the error rate for the model     
+    err[i] <- model$err.rate[nrow(model$err.rate), "OOB"]
+}
+
+# Identify optimal set of hyperparmeters based on error rate
+best_comb <- which.min(err)
+print(setOfvalues[best_comb,])
+
+
+```
+```{r}
+RF_model <- randomForest(CLASS~., bothsampled, mtry=7,nodesize=7,sampsize=15509)
+importance(RF_model)
+
+
+```
+
+```{r}
+
+# Predict the class of the test data
+RF_predict <- predict(RF_model, test)
+accuracy_RF <- length(which(RF_predict == test$class))/nrow(test)
+accuracy_RF
+confusionMatrix(RF_predict, test$CLASS, positive='1', mode = "prec_recall")
+
+```
+
+
+# build a GBM model
+```{r}
+datamodelling$CLASS <- as.numeric(datamodelling$CLASS)-1
+```
+
+```{r}
+# Set random seed
+set.seed(10)
+
+# Build the GBM model
+GBM_model <- gbm(CLASS~., datamodelling, distribution = "bernoulli", n.trees = 189, interaction.depth = 3, cv.folds = 5)
+
+```
+
+GBM model stops building decision trees when the number of trees reach to the limit defined by `n.trees`, which is 500 for this case. However, using all trees to make a prediction on the test data may deteriorate the performance of the model due to overfitting. We can use `gbm.perf` function to find the best number of trees to use for prediction.
+
+```{r}
+# Find the number of trees for the prediction
+ntree_opt <- gbm.perf(GBM_model, method = "cv")
+```
+
+Now, we will use `predict` function to make predictions on the test data. GBM returns the probability that a target variable belongs to a particular class. Therefore, we use `type="response"` argument to obtain these values.
+
+*GBM_prob* will keep the class scores (or probabilities). In order to predict the class of a test data, we use default threshold value. If the probability of a record is greater than or equal to 0.5, it will be marked as churn "1", otherwise it will be marked as stay "0". We need to save these predictions as factor variable.
+
+```{r}
+# Obtain prediction probabilities using ntree_opt
+GBM_prob <-  predict(GBM_model, test, n.trees = ntree_opt, type = "response")
+
+# Make predictions with threshold value 0.5
+GBM_predict <- ifelse(GBM_prob>= 0.5, "1", "0")
+
+# Save the predictions as a factor variable
+GBM_predict <- as.factor(GBM_predict)
+
+accuracy_GBM <- length(which(GBM_predict == test$CLASS))/nrow(test)
+accuracy_GBM
+
+confusionMatrix(GBM_predict, test$CLASS, positive='1', mode = "prec_recall")
+
+```
+
+* Compare above 5 models.
+
+```{r}
+# Return the total number of correct predictions for decision tree
+#accuracy_tree
+
+# Return the total number of correct predictions for SVM
+accuracy_svm
+
+# Return the total number of correct predictions for LR
+accuracy_LR
+
+# Return the total number of correct predictions for RF
+accuracy_RF
+
+# Return the total number of correct predictions for GBM
+accuracy_GBM
+
+# Confusion matrix
+#cm_tree <- confusionMatrix(tree_predict,test$CLASS, positive = "1", mode = "prec_recall")
+#cm_tree
+cm_svm <- confusionMatrix(svm_predict,test$CLASS, positive = "1", mode = "prec_recall")
+cm_svm
+cm_lr <- confusionMatrix(LR_class,test$CLASS, positive = "1", mode = "prec_recall")
+cm_lr
+cm_rf <- confusionMatrix(RF_predict, test$CLASS, positive='1', mode = "prec_recall")
+cm_rf
+cm_GBM <- confusionMatrix(GBM_predict, test$CLASS, positive='1', mode = "prec_recall")
+cm_GBM
+```
+
+
+Obtain class probabilities (likelihood of belonging to a class) for SVM and Random Forest models.
+Class probabilities of GBM are stored in *GBM_prob*. Therefore, we only need to extract probabilities predicted by SVM and Random Forest. 
+```{r}
+# Obtain class probabilities by using predict() and adding type = "prob" for Random Forest
+#RF_prob <- predict(RF_model, test, type = "prob")
+
+
+# Add probability = TRUE for SVM
+svm_prob <- predict(SVM_model, test, probability = TRUE)
+
+# Use SVMpred to extract probabilities
+SVM_prob <- attr(svm_predict, "probabilities")
+
+```
+
+
+```{r}
+#ROC_RF <- roc(test$CLASS, RF_prob[,2])
+ROC_SVM <- roc(test$CLASS, svm_prob[,2])
+ROC_GBM <- roc(test$CLASS, GBM_prob)
+
+# Extract required data from ROC_SVM
+df_SVM = data.frame((1-ROC_SVM$specificities), ROC_SVM$sensitivities)
+
+# Extract required data from ROC_RF
+df_RF = data.frame((1-ROC_RF$specificities), ROC_RF$sensitivities)
+
+# Extract required data from ROC_GBM
+df_GBM = data.frame((1-ROC_GBM$specificities), ROC_GBM$sensitivities)
+
+#plot the ROC curve for Random Forest, SVM and GBM
+plot(df_SVM, col="red", type="l",     
+xlab="False Positive Rate (1-Specificity)", ylab="True Positive Rate (Sensitivity)")
+lines(df_RF, col="blue")                #adds ROC curve for RF
+lines(df_GBM, col="green")              #adds ROC curve for GBM
+grid(NULL, lwd = 1)
+
+abline(a = 0, b = 1, col = "lightgray") #adds a diagonal line
+
+legend("bottomright",
+c("SVM", "Random Forest", "GBM"),
+fill=c("red","blue", "green"))
+```
+
