@@ -1,8 +1,5 @@
-# Machine-Learning-Credit-Risk-Prediction-R
-ML analysis to predict customer default
-
-# Project Name
-> This project utilizes predictive analytics techniques to identify customers who are highly likely to default on their loans. Using machine learning, the dataset is 
+# Assessing Credit Risk using Machine Learning
+> This project utilizes predictive analytics techniques to identify customers who are highly likely to default on their loans.
 
 ## Table of Contents
 * [General Info](#general-information)
@@ -27,10 +24,7 @@ ML analysis to predict customer default
 
 
 ## Technologies Used
-- Tech 1 - version 1.0
-- Tech 2 - version 2.0
-- Tech 3 - version 3.0
-
+- RStudio
 
 ## Features
 List the ready features here:
