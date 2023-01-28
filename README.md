@@ -16,69 +16,23 @@
 
 
 ## General Information
-- Provide general information about your project here.
-- What problem does it (intend to) solve?
-- What is the purpose of your project?
-- Why did you undertake it?
-<!-- You don't have to answer all the questions - just the ones relevant to your project. -->
+This project resembles work done by an analytics consultancy company. A private financial institution, “Universal Plus”, requested a pitch to win a major contract with them to develop and deploy a credit risk management system.
+
+Universal Plus loans money to their clients to be paid in a fixed term. In the past, some of their clients were unable to repay the loans on their debt obligations and their loans went into default. Lending money without considering the potential defaults can result in huge losses. Therefore, Universal Plus wants to proactively anticipate the defaults with a credit risk management system. This system is required to predict which customers is likely to default in their loan payment in the future. Having such a system will ensure that Universal Plus can identify their credible and not credible customers, and take proactive steps to control the risks. Several other consultancy companies have been approached as well, and the final decision on who will get the contract will largely depend on the outcome of a demonstration of the approach to this problem based on a dataset that Universal Plus provided.
+The dataset1 contains 31,375 instances of historic loan applications. 
 
 
 ## Technologies Used
 - RStudio
 
 ## Features
-List the ready features here:
-- Awesome feature 1
-- Awesome feature 2
-- Awesome feature 3
-
-
-## Screenshots
-![Example screenshot](./img/screenshot.png)
-<!-- If you have screenshots you'd like to share, include them here. -->
-
-
-## Setup
-What are the project requirements/dependencies? Where are they listed? A requirements.txt or a Pipfile.lock file perhaps? Where is it located?
-
-Proceed to describe how to install / setup one's local environment / get started with the project.
-
-
-## Usage
-How does one go about using it?
-Provide various use cases and code examples here.
-
-`write-your-code-here`
-
+- ETL (Extract-Transformation-Loading) Process
+- Data Engineering
+- Modelling (SVM, RG, GB, Regression, Decision Trees, ...)
+- Information Gain
 
 ## Project Status
 Project is: _complete_ 
 
 ## Room for Improvement
-Include areas you believe need improvement / could be improved. Also add TODOs for future development.
-
-Room for improvement:
-- Improvement to be done 1
-- Improvement to be done 2
-
-To do:
-- Feature to be added 1
-- Feature to be added 2
-
-
-## Acknowledgements
-Give credit here.
-- This project was inspired by...
-- This project was based on [this tutorial](https://www.example.com).
-- Many thanks to...
-
-
-## Contact
-Created by [@flynerdpl](https://www.flynerd.pl/) - feel free to contact me!
-
-
-<!-- Optional -->
-<!-- ## License -->
-<!-- This project is open source and available under the [... License](). -->
-
-<!-- You don't have to include all sections - just the one's relevant to your project -->
+- Parameter tuning for better results
